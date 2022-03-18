@@ -10,7 +10,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 
 class HsqlTest {
-  val conn = DriverManager.getConnection("jdbc:hsqldb:mem:mymemdb")
+  val conn = DriverManager.getConnection("jdbc:hsqldb:mem:mymemdb;shutdown=true")
   val driver = object : JdbcDriver() {
     override fun getConnection() = conn
     override fun closeConnection(connection: Connection) = Unit
