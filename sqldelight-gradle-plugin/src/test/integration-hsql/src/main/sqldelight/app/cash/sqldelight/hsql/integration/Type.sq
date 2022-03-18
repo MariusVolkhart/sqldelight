@@ -1,0 +1,16 @@
+CREATE TABLE types (
+  test1 DECIMAL NOT NULL,
+  test2 NUMERIC NOT NULL,
+  test3 DEC NOT NULL,
+  test4 DECIMAL(8,4),
+  test5 NUMERIC(8,4),
+  test6 DEC(8,4)
+);
+
+insertTypes:
+INSERT INTO types
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectTypes:
+SELECT *
+FROM types;

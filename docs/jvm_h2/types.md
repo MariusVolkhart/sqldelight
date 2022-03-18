@@ -11,9 +11,9 @@ CREATE TABLE some_types (
   some_integer INTEGER,                            -- Retrieved as Int
   some_int INT,                                    -- Retrieved as Int
   some_big_int BIGINT,                             -- Retrieved as Long
-  some_decimal DECIMAL(6,5),                       -- Retrieved as Int
-  some_dec DEC(6,5),                               -- Retrieved as Int
-  some_numeric NUMERIC(6,5),                       -- Retrieved as Int
+  some_decimal DECIMAL(6,5),                       -- Retrieved as BigDecimal
+  some_dec DEC(6,5),                               -- Retrieved as BigDecimal
+  some_numeric NUMERIC(6,5),                       -- Retrieved as BigDecimal
   some_float FLOAT(6),                             -- Retrieved as Double
   some_real REAL,                                  -- Retrieved as Double
   some_double DOUBLE,                              -- Retrieved as Double

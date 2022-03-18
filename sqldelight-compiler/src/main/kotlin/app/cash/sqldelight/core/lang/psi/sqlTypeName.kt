@@ -80,7 +80,7 @@ private fun HsqlTypeName.type(): IntermediateType {
     smallIntDataType != null -> IntermediateType(HsqlType.SMALL_INT)
     intDataType != null -> IntermediateType(HsqlType.INTEGER)
     bigIntDataType != null -> IntermediateType(HsqlType.BIG_INT)
-    fixedPointDataType != null -> IntermediateType(SqliteType.INTEGER)
+    fixedPointDataType != null -> IntermediateType(HsqlType.DECIMAL)
     characterStringDataType != null -> IntermediateType(SqliteType.TEXT)
     booleanDataType != null -> IntermediateType(HsqlType.BOOL)
     bitStringDataType != null -> IntermediateType(SqliteType.BLOB)

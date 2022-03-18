@@ -6,6 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.DriverManager
 
@@ -36,6 +37,23 @@ class HsqlTest {
           name = "Tilda",
           breed = "Pomeranian",
           is_good = true
+        )
+      )
+  }
+
+  @Test fun types() {
+    val int = BigDecimal("1234")
+    val decimal = BigDecimal("1234.1234")
+    database.typeQueries.insertTypes(decimal, decimal, decimal, decimal, decimal, decimal)
+    assertThat(database.typeQueries.selectTypes().executeAsOne())
+      .isEqualTo(
+        Types(
+          test1 = int,
+          test2 = int,
+          test3 = int,
+          test4 = decimal,
+          test5 = decimal,
+          test6 = decimal,
         )
       )
   }
