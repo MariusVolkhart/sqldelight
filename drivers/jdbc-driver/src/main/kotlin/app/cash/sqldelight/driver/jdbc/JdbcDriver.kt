@@ -7,6 +7,7 @@ import app.cash.sqldelight.db.SqlCursor
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.db.SqlPreparedStatement
 import app.cash.sqldelight.driver.jdbc.ConnectionManager.Transaction
+import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -201,6 +202,14 @@ open class JdbcPreparedStatement(
     }
   }
 
+  fun bindBigDecimal(index: Int, decimal: BigDecimal?) {
+    if (decimal == null) {
+      preparedStatement.setNull(index, Types.NUMERIC)
+    } else {
+      preparedStatement.setBigDecimal(index, decimal)
+    }
+  }
+
   fun executeQuery(onClose: () -> Unit) =
     JdbcCursor(preparedStatement, preparedStatement.executeQuery(), onClose)
 
@@ -225,6 +234,9 @@ open class JdbcCursor(
   }
   override fun getDouble(index: Int): Double? {
     return resultSet.getDouble(index + 1).takeUnless { resultSet.wasNull() }
+  }
+  fun getBigDecimal(index: Int): BigDecimal? {
+    return resultSet.getBigDecimal(index + 1).takeUnless { resultSet.wasNull() }
   }
   override fun close() {
     resultSet.close()
