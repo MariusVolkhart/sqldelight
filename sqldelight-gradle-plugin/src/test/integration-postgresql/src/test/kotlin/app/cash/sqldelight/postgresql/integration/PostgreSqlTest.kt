@@ -72,8 +72,25 @@ class PostgreSqlTest {
       )
   }
 
-  @Test fun returningInsert() {
-    assertThat(database.dogQueries.insertAndReturn("Tilda", "Pomeranian").executeAsOne())
+  @Test fun insertReturning1() {
+    assertThat(database.dogQueries.insertAndReturn1("Tilda", "Pomeranian").executeAsOne())
+      .isEqualTo(
+        "Tilda",
+      )
+  }
+
+  @Test fun insertReturningMany() {
+    assertThat(database.dogQueries.insertAndReturnMany("Tilda", "Pomeranian").executeAsOne())
+      .isEqualTo(
+        InsertAndReturnMany(
+          name = "Tilda",
+          breed = "Pomeranian",
+        ),
+      )
+  }
+
+  @Test fun insertReturningAll() {
+    assertThat(database.dogQueries.insertAndReturnAll("Tilda", "Pomeranian").executeAsOne())
       .isEqualTo(
         Dog(
           name = "Tilda",

@@ -17,7 +17,17 @@ SELECT *
 FROM dog
 WHERE :someBoolean AND 1 = 1;
 
-insertAndReturn:
+insertAndReturn1:
+INSERT INTO dog
+VALUES (?, ?, DEFAULT)
+RETURNING name;
+
+insertAndReturnMany:
+INSERT INTO dog
+VALUES (?, ?, DEFAULT)
+RETURNING name, breed;
+
+insertAndReturnAll:
 INSERT INTO dog
 VALUES (?, ?, DEFAULT)
 RETURNING *;

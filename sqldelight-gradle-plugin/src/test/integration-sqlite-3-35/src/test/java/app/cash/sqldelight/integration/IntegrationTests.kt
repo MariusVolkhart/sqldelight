@@ -7,19 +7,30 @@ import org.junit.Before
 import org.junit.Test
 
 class IntegrationTests {
-  private lateinit var queryWrapper: QueryWrapper
   private lateinit var personQueries: PersonQueries
 
   @Before fun before() {
     val database = JdbcSqliteDriver(IN_MEMORY)
     QueryWrapper.Schema.create(database)
 
-    queryWrapper = QueryWrapper(database)
+    val queryWrapper = QueryWrapper(database)
     personQueries = queryWrapper.personQueries
   }
 
-  @Test fun returningInsert() {
-    assertThat(database.personQueries.insertAndReturn(1, "Alec", "Strong").executeAsOne())
+  @Test fun insertReturning1() {
+    assertThat(personQueries.insertAndReturn1(1, "Alec", "Strong").executeAsOne())
+      .isEqualTo("Alec")
+  }
+
+  @Test fun insertReturningMany() {
+    assertThat(personQueries.insertAndReturnMany(1, "Alec", "Strong").executeAsOne())
+      .isEqualTo(
+        InsertAndReturnMany(1, "Alec"),
+      )
+  }
+
+  @Test fun insertReturningAll() {
+    assertThat(personQueries.insertAndReturnAll(1, "Alec", "Strong").executeAsOne())
       .isEqualTo(
         Person(1, "Alec", "Strong"),
       )
