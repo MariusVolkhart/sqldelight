@@ -8,6 +8,7 @@ import app.cash.sqldelight.dialect.api.PrimitiveType.INTEGER
 import app.cash.sqldelight.dialect.api.PrimitiveType.REAL
 import app.cash.sqldelight.dialect.api.PrimitiveType.TEXT
 import app.cash.sqldelight.dialect.api.QueryWithResults
+import app.cash.sqldelight.dialect.api.ReturningQueryable
 import app.cash.sqldelight.dialect.api.TypeResolver
 import app.cash.sqldelight.dialect.api.encapsulatingType
 import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.BIG_INT
@@ -18,14 +19,11 @@ import app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlDeleteStmtL
 import app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlInsertStmt
 import app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlTypeName
 import app.cash.sqldelight.dialects.postgresql.grammar.psi.PostgreSqlUpdateStmtLimited
-import com.alecstrong.sql.psi.core.psi.QueryElement
-import com.alecstrong.sql.psi.core.psi.Queryable
 import com.alecstrong.sql.psi.core.psi.SqlAnnotatedElement
 import com.alecstrong.sql.psi.core.psi.SqlCreateTableStmt
 import com.alecstrong.sql.psi.core.psi.SqlFunctionExpr
 import com.alecstrong.sql.psi.core.psi.SqlStmt
 import com.alecstrong.sql.psi.core.psi.SqlTypeName
-import com.intellij.psi.util.PsiTreeUtil
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.asTypeName
@@ -95,36 +93,9 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
   }
 
   override fun queryWithResults(sqlStmt: SqlStmt): QueryWithResults? {
-    fun List<QueryElement.QueryColumn>.flattenCompounded(): List<QueryElement.QueryColumn> {
-      return map { column ->
-        if (column.compounded.none { it.element != column.element || it.nullable != column.nullable }) {
-          column.copy(compounded = emptyList())
-        } else {
-          column
-        }
-      }
-    }
-
     sqlStmt.insertStmt?.let { insert ->
       check(insert is PostgreSqlInsertStmt)
-      insert.returningClause?.let {
-        return object : QueryWithResults {
-          override var statement: SqlAnnotatedElement = insert
-          override val select = it
-          override val pureTable by lazy {
-            val pureColumns = select.queryExposed().singleOrNull()?.columns?.flattenCompounded()
-            val resolvedTable = insert.tableName.reference?.resolve()
-            val table = PsiTreeUtil.getParentOfType(resolvedTable, Queryable::class.java)?.tableExposed()
-              ?: return@lazy null
-            val requestedColumnsAreIdenticalToTable = table.query.columns.flattenCompounded() == pureColumns
-            if (requestedColumnsAreIdenticalToTable) {
-              insert.tableName
-            } else {
-              null
-            }
-          }
-        }
-      }
+      insert.returningClause?.let { return ReturningQueryable(insert, it, insert.tableName) }
     }
     sqlStmt.updateStmtLimited?.let { update ->
       check(update is PostgreSqlUpdateStmtLimited)
