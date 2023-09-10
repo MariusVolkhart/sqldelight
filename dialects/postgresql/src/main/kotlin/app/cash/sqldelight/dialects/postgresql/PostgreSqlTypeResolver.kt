@@ -13,6 +13,7 @@ import app.cash.sqldelight.dialect.api.TypeResolver
 import app.cash.sqldelight.dialect.api.encapsulatingType
 import app.cash.sqldelight.dialect.api.encapsulatingTypePreferringKotlin
 import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.BIG_INT
+import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.JSON
 import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.SMALL_INT
 import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.TIMESTAMP
 import app.cash.sqldelight.dialects.postgresql.PostgreSqlType.TIMESTAMP_TIMEZONE
@@ -38,6 +39,7 @@ import com.intellij.psi.tree.TokenSet
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.asTypeName
+import org.postgresql.util.PGobject
 
 class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeResolver by parentResolver {
   override fun definitionType(typeName: SqlTypeName): IntermediateType = with(typeName) {
@@ -64,7 +66,7 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
             else -> throw IllegalArgumentException("Unknown date type ${dateDataType!!.text}")
           }
         }
-        jsonDataType != null -> TEXT
+        jsonDataType != null -> JSON
         booleanDataType != null -> BOOLEAN
         blobDataType != null -> BLOB
         else -> throw IllegalArgumentException("Unknown kotlin type for sql type ${this.text}")
@@ -75,8 +77,21 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
         object : DialectType {
           override val javaType = Array::class.asTypeName().parameterizedBy(type.javaType)
 
-          override fun prepareStatementBinder(columnIndex: CodeBlock, value: CodeBlock) =
-            CodeBlock.of("bindObject(%L, %L)\n", columnIndex, value)
+          override fun prepareStatementBinder(columnIndex: CodeBlock, value: CodeBlock): CodeBlock {
+            if (type.dialectType == JSON) {
+              return CodeBlock.of(
+                """
+                bindObject(%L, %L.map {
+                  %T().apply {
+                    type = "json"
+                    value = it
+                  }
+                })
+
+                """.trimIndent(), columnIndex, value, PGobject::class.asTypeName())
+            }
+            return CodeBlock.of("bindObject(%L, %L)\n", columnIndex, value)
+          }
 
           override fun cursorGetter(columnIndex: Int, cursorName: String) =
             CodeBlock.of("$cursorName.getArray<%T>($columnIndex)", type.javaType)
@@ -163,7 +178,7 @@ class PostgreSqlTypeResolver(private val parentResolver: TypeResolver) : TypeRes
     "jsonb_pretty",
     "json_typeof", "jsonb_typeof",
     "json_agg", "jsonb_agg", "json_object_agg", "jsonb_object_agg",
-    -> IntermediateType(TEXT)
+    -> IntermediateType(JSON)
     "json_array_length", "jsonb_array_length" -> IntermediateType(INTEGER)
     "jsonb_path_exists", "jsonb_path_match", "jsonb_path_exists_tz", "jsonb_path_match_tz" -> IntermediateType(BOOLEAN)
     "generate_series" -> encapsulatingType(exprList, INTEGER, BIG_INT, REAL, TIMESTAMP_TIMEZONE, TIMESTAMP)

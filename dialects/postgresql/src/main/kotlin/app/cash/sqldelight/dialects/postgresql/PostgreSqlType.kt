@@ -7,6 +7,8 @@ import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.asTypeName
+import org.postgresql.util.PGobject
 
 internal enum class PostgreSqlType(override val javaType: TypeName) : DialectType {
   SMALL_INT(SHORT),
@@ -19,6 +21,7 @@ internal enum class PostgreSqlType(override val javaType: TypeName) : DialectTyp
   INTERVAL(ClassName("org.postgresql.util", "PGInterval")),
   UUID(ClassName("java.util", "UUID")),
   NUMERIC(ClassName("java.math", "BigDecimal")),
+  JSON(String::class.asTypeName()),
   ;
 
   override fun prepareStatementBinder(columnIndex: CodeBlock, value: CodeBlock): CodeBlock {
@@ -28,11 +31,25 @@ internal enum class PostgreSqlType(override val javaType: TypeName) : DialectTyp
           SMALL_INT -> "bindShort"
           INTEGER -> "bindInt"
           BIG_INT -> "bindLong"
-          DATE, TIME, TIMESTAMP, TIMESTAMP_TIMEZONE, INTERVAL, UUID -> "bindObject"
+          DATE, TIME, TIMESTAMP, TIMESTAMP_TIMEZONE, INTERVAL, UUID, JSON -> "bindObject"
           NUMERIC -> "bindBigDecimal"
         },
       )
-      .add("(%L, %L)\n", columnIndex, value)
+      .apply {
+        when (this@PostgreSqlType) {
+          JSON -> {
+            add(
+              """
+                (%L, %T().apply {
+                  type = "json"
+                  value = %L
+                })
+
+                """.trimIndent(), columnIndex, PGobject::class.asTypeName(), value)
+          }
+          else -> add("(%L, %L)\n", columnIndex, value)
+        }
+      }
       .build()
   }
 
@@ -44,6 +61,7 @@ internal enum class PostgreSqlType(override val javaType: TypeName) : DialectTyp
         BIG_INT -> "$cursorName.getLong($columnIndex)"
         DATE, TIME, TIMESTAMP, TIMESTAMP_TIMEZONE, INTERVAL, UUID -> "$cursorName.getObject<%T>($columnIndex)"
         NUMERIC -> "$cursorName.getBigDecimal($columnIndex)"
+        JSON -> "$cursorName.getString($columnIndex)"
       },
       javaType,
     )
